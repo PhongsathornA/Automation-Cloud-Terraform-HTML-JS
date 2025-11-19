@@ -5,63 +5,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Universal Cloud Creator</title>
     <style>
-        /* (ใช้ CSS เดิมได้เลยครับ ผมย่อให้สั้นลงเพื่อโฟกัสที่เนื้อหา) */
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; padding: 20px; }
-        .container { max-width: 700px; margin: auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #1a73e8; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; }
-        input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; }
-        button:hover { background-color: #1557b0; }
-        #manual-subnet-box { display: none; margin-top: 10px; padding: 15px; background: #f8f9fa; border-left: 4px solid #1a73e8; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; margin: 0; }
+        .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #1a73e8; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
         
-        /* Style สำหรับ Checkbox สวยๆ */
+        .os-badge {
+            display: block;
+            text-align: center;
+            background: #fff3e0;
+            color: #e65100;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ffe0b2;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; transition: all 0.3s; }
+        input:focus, select:focus { border-color: #1a73e8; outline: none; box-shadow: 0 0 0 3px rgba(26,115,232,0.2); }
+        
+        button { width: 100%; padding: 15px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background-color 0.3s; }
+        button:hover { background-color: #1557b0; }
+
+        #manual-subnet-box { display: none; margin-top: 10px; padding: 15px; background: #f8f9fa; border-left: 4px solid #1a73e8; border-radius: 4px; }
+        
         .checkbox-group { display: flex; align-items: center; background: #e8f0fe; padding: 15px; border-radius: 8px; border: 1px solid #d2e3fc; }
         .checkbox-group input { width: 20px; height: 20px; margin-right: 15px; cursor: pointer; }
-        .checkbox-group label { margin: 0; cursor: pointer; color: #1967d2; }
+        .checkbox-group label { margin: 0; cursor: pointer; color: #1967d2; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>☁️ Universal Cloud Creator</h1>
+        <p class="subtitle">Create AWS Infrastructure with Terraform & Go</p>
         
+        <div class="os-badge">
+            🐧 OS Image: Amazon Linux 2023 (Optimized for AWS)
+        </div>
+
         <form action="/generate" method="POST">
             
             <div class="form-group">
                 <label>1. Instance Name (ชื่อเครื่อง):</label>
-                <input type="text" name="serverName" placeholder="e.g. My-Server" required>
+                <input type="text" name="serverName" placeholder="e.g. My-Amazon-Server" required>
             </div>
 
             <div class="form-group">
-                <label>2. Instance Type:</label>
+                <label>2. Instance Type (ขนาดเครื่อง):</label>
                 <select name="instanceType">
-                    <option value="t3.micro">t3.micro</option>
-                    <option value="t3.small">t3.small</option>
+                    <option value="t3.micro">t3.micro (2 vCPU, 1 GB RAM)</option>
+                    <option value="t3.small">t3.small (2 vCPU, 2 GB RAM)</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label>3. Region:</label>
+                <label>3. Region (โซน):</label>
                 <select name="region">
-                    <option value="ap-southeast-1">Singapore</option>
+                    <option value="ap-southeast-1">Singapore (ap-southeast-1)</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label>4. Security Group Name:</label>
-                <input type="text" name="sgName" placeholder="e.g. my-sg" required>
+                <input type="text" name="sgName" placeholder="e.g. amazon-linux-sg" required>
             </div>
 
             <div class="form-group">
                 <label>5. Subnet Config:</label>
                 <select id="subnetMode" name="subnetMode" onchange="toggleSubnet()">
-                    <option value="auto">Auto (Default)</option>
+                    <option value="auto">Auto (Default CIDR)</option>
                     <option value="manual">Manual (Custom CIDR)</option>
                 </select>
                 <div id="manual-subnet-box">
-                    <label>CIDR Block:</label>
+                    <label>Enter CIDR Block:</label>
                     <input type="text" name="customCidr" placeholder="e.g. 172.31.250.0/24">
                 </div>
             </div>
@@ -69,9 +89,11 @@
             <div class="form-group">
                 <div class="checkbox-group">
                     <input type="checkbox" id="installNginx" name="installNginx" value="yes" checked>
-                    <label for="installNginx">🛠️ Install Web Server (Nginx) Automatically?</label>
+                    <label for="installNginx">🛠️ Install Nginx Web Server (via dnf)</label>
                 </div>
-                <small style="color: #666; display: block; margin-top: 5px;">(ถ้าไม่ติ๊ก จะได้เครื่อง Linux เปล่าๆ)</small>
+                <small style="color: #666; display: block; margin-top: 8px; margin-left: 5px;">
+                    *ระบบจะใช้คำสั่ง <code>user_data</code> เพื่อติดตั้ง Nginx อัตโนมัติตอนเปิดเครื่อง
+                </small>
             </div>
 
             <button type="submit">🚀 Generate Infrastructure</button>

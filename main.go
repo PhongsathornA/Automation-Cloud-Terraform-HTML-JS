@@ -14,7 +14,7 @@ type FormData struct {
 	Region       string
 	SgName       string
 	SubnetCIDR   string
-	InstallNginx bool // 👇 เพิ่มตัวแปรนี้
+	InstallNginx bool
 }
 
 func main() {
@@ -34,7 +34,6 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Checkbox: ถ้าติ๊กจะได้ค่า "yes", ถ้าไม่ติ๊กจะได้ค่าว่าง ""
 	nginxChoice := r.FormValue("installNginx")
 	isInstall := false
 	if nginxChoice == "yes" {
@@ -59,7 +58,7 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		Region:       r.FormValue("region"),
 		SgName:       r.FormValue("sgName"),
 		SubnetCIDR:   finalCidr,
-		InstallNginx: isInstall, // ส่งค่า Boolean ไปที่ Template
+		InstallNginx: isInstall,
 	}
 
 	const tfTemplate = `terraform {
@@ -136,20 +135,23 @@ resource "aws_instance" "web_server" {
   vpc_security_group_ids = [aws_security_group.user_custom_sg.id]
   associate_public_ip_address = true
 
-  # 👇👇👇 Logic เลือกติดตั้ง Nginx 👇👇👇
+  # 👇👇👇 ปรับแก้ Script สำหรับ Amazon Linux 👇👇👇
   {{if .InstallNginx}}
   user_data = <<-EOF
               #!/bin/bash
-              sudo apt-get update -y
-              sudo apt-get install -y nginx
-              sudo systemctl start nginx
-              sudo systemctl enable nginx
-              echo "<h1>☁️ Hello from {{.ServerName}}!</h1><p>Nginx Installed via Automation</p>" > /var/www/html/index.html
+              # ใช้ dnf แทน apt-get (เพราะเป็น Amazon Linux)
+              dnf update -y
+              dnf install -y nginx
+              
+              systemctl start nginx
+              systemctl enable nginx
+              
+              # Amazon Linux เก็บหน้าเว็บไว้ที่ /usr/share/nginx/html
+              echo "<h1>☁️ Hello from Amazon Linux!</h1><p>Server: {{.ServerName}}</p>" > /usr/share/nginx/html/index.html
               EOF
   
   user_data_replace_on_change = true
   {{end}}
-  # 👆👆👆 ถ้าไม่ได้ติ๊ก Checkbox โค้ดส่วนนี้จะหายไปเลย
 
   tags = {
     Name    = "{{.ServerName}}"
@@ -185,18 +187,17 @@ output "website_url" {
 		return
 	}
 
-	// Success Message
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprintf(w, `
 		<div style="font-family: sans-serif; text-align: center; padding: 40px;">
-			<h1 style="color: green;">✅ สร้างไฟล์สำเร็จ!</h1>
+			<h1 style="color: green;">✅ สร้างไฟล์สำเร็จ! (Amazon Linux Version)</h1>
 			<p>สถานะการติดตั้ง Nginx: <strong>%t</strong></p>
 			
 			<div style="background: #f8f9fa; padding: 20px; border: 1px solid #ddd; display: inline-block; text-align: left; border-radius: 8px;">
 				<code>
 				terraform fmt<br>
 				git add .<br>
-				git commit -m "Config Nginx option"<br>
+				git commit -m "Update user_data for Amazon Linux"<br>
 				git push
 				</code>
 			</div>
@@ -205,5 +206,5 @@ output "website_url" {
 		</div>
 	`, isInstall)
 	
-	fmt.Printf("Generated: Server=%s, InstallNginx=%t\n", data.ServerName, isInstall)
+	fmt.Printf("Generated for Amazon Linux: %s\n", data.ServerName)
 }
