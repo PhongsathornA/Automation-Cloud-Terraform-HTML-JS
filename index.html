@@ -5,22 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Universal Cloud Creator</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        /* (ใช้ CSS เดิมได้เลยครับ ผมย่อให้สั้นลงเพื่อโฟกัสที่เนื้อหา) */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; padding: 20px; }
         .container { max-width: 700px; margin: auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #1a73e8; margin-bottom: 30px; }
+        h1 { text-align: center; color: #1a73e8; }
         .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
-        input:focus, select:focus { border-color: #1a73e8; outline: none; }
-        
-        /* ปุ่ม Submit */
-        button { width: 100%; padding: 15px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background-color 0.3s; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; }
+        input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; }
         button:hover { background-color: #1557b0; }
-
-        /* ส่วนที่ซ่อนไว้ (Manual Subnet) */
-        #manual-subnet-box { display: none; margin-top: 10px; padding: 15px; background: #f8f9fa; border-left: 4px solid #1a73e8; border-radius: 4px; }
+        #manual-subnet-box { display: none; margin-top: 10px; padding: 15px; background: #f8f9fa; border-left: 4px solid #1a73e8; }
         
-        .note { background-color: #e8f0fe; color: #1967d2; padding: 15px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9em; line-height: 1.5; }
+        /* Style สำหรับ Checkbox สวยๆ */
+        .checkbox-group { display: flex; align-items: center; background: #e8f0fe; padding: 15px; border-radius: 8px; border: 1px solid #d2e3fc; }
+        .checkbox-group input { width: 20px; height: 20px; margin-right: 15px; cursor: pointer; }
+        .checkbox-group label { margin: 0; cursor: pointer; color: #1967d2; }
     </style>
 </head>
 <body>
@@ -28,49 +27,51 @@
     <div class="container">
         <h1>☁️ Universal Cloud Creator</h1>
         
-        <div class="note">
-            <strong>✨ New Features:</strong> สามารถตั้งชื่อ Security Group เองได้ และเลือกโหมด Subnet ได้แล้ว!
-        </div>
-
         <form action="/generate" method="POST">
             
             <div class="form-group">
                 <label>1. Instance Name (ชื่อเครื่อง):</label>
-                <input type="text" name="serverName" placeholder="e.g. My-App-Server" required>
+                <input type="text" name="serverName" placeholder="e.g. My-Server" required>
             </div>
 
             <div class="form-group">
-                <label>2. Instance Type (ขนาดเครื่อง):</label>
+                <label>2. Instance Type:</label>
                 <select name="instanceType">
-                    <option value="t3.micro">t3.micro (Small)</option>
-                    <option value="t3.small">t3.small (Medium)</option>
+                    <option value="t3.micro">t3.micro</option>
+                    <option value="t3.small">t3.small</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label>3. Region (โซน):</label>
+                <label>3. Region:</label>
                 <select name="region">
-                    <option value="ap-southeast-1">Singapore (ap-southeast-1)</option>
+                    <option value="ap-southeast-1">Singapore</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label>4. Security Group Name (ชื่อยามเฝ้าประตู):</label>
-                <input type="text" name="sgName" placeholder="e.g. my-web-firewall" required>
+                <label>4. Security Group Name:</label>
+                <input type="text" name="sgName" placeholder="e.g. my-sg" required>
             </div>
 
             <div class="form-group">
-                <label>5. Subnet Configuration (วงเครือข่าย):</label>
+                <label>5. Subnet Config:</label>
                 <select id="subnetMode" name="subnetMode" onchange="toggleSubnet()">
-                    <option value="auto">Auto (ระบบจัดการให้ - แนะนำ)</option>
-                    <option value="manual">Manual (กำหนด IP เอง)</option>
+                    <option value="auto">Auto (Default)</option>
+                    <option value="manual">Manual (Custom CIDR)</option>
                 </select>
-
                 <div id="manual-subnet-box">
-                    <label>Enter CIDR Block:</label>
+                    <label>CIDR Block:</label>
                     <input type="text" name="customCidr" placeholder="e.g. 172.31.250.0/24">
-                    <small style="color: #666;">*ต้องเป็น IP ที่ไม่ซ้ำกับที่มีอยู่ (Valid CIDR)</small>
                 </div>
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="installNginx" name="installNginx" value="yes" checked>
+                    <label for="installNginx">🛠️ Install Web Server (Nginx) Automatically?</label>
+                </div>
+                <small style="color: #666; display: block; margin-top: 5px;">(ถ้าไม่ติ๊ก จะได้เครื่อง Linux เปล่าๆ)</small>
             </div>
 
             <button type="submit">🚀 Generate Infrastructure</button>
@@ -80,14 +81,7 @@
     <script>
         function toggleSubnet() {
             const mode = document.getElementById("subnetMode").value;
-            const box = document.getElementById("manual-subnet-box");
-            
-            // ถ้าเลือก Manual ให้แสดงกล่อง, ถ้า Auto ให้ซ่อน
-            if (mode === "manual") {
-                box.style.display = "block";
-            } else {
-                box.style.display = "none";
-            }
+            document.getElementById("manual-subnet-box").style.display = (mode === "manual") ? "block" : "none";
         }
     </script>
 

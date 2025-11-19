@@ -14,6 +14,7 @@ type FormData struct {
 	Region       string
 	SgName       string
 	SubnetCIDR   string
+	InstallNginx bool // 👇 เพิ่มตัวแปรนี้
 }
 
 func main() {
@@ -31,6 +32,13 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	// Checkbox: ถ้าติ๊กจะได้ค่า "yes", ถ้าไม่ติ๊กจะได้ค่าว่าง ""
+	nginxChoice := r.FormValue("installNginx")
+	isInstall := false
+	if nginxChoice == "yes" {
+		isInstall = true
 	}
 
 	subnetMode := r.FormValue("subnetMode")
@@ -51,6 +59,7 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		Region:       r.FormValue("region"),
 		SgName:       r.FormValue("sgName"),
 		SubnetCIDR:   finalCidr,
+		InstallNginx: isInstall, // ส่งค่า Boolean ไปที่ Template
 	}
 
 	const tfTemplate = `terraform {
@@ -62,7 +71,7 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
   }
 
   backend "s3" {
-    bucket = "terraform-state-phongsathorn-2025"  # <--- ⚠️ อย่าลืมแก้ชื่อ Bucket เป็นของคุณ!
+    bucket = "terraform-state-phongsathorn-2025"  # <--- ⚠️ แก้ชื่อ Bucket ของคุณตรงนี้!
     key    = "terraform.tfstate"
     region = "{{.Region}}"
   }
@@ -127,22 +136,33 @@ resource "aws_instance" "web_server" {
   vpc_security_group_ids = [aws_security_group.user_custom_sg.id]
   associate_public_ip_address = true
 
+  # 👇👇👇 Logic เลือกติดตั้ง Nginx 👇👇👇
+  {{if .InstallNginx}}
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo apt-get update -y
+              sudo apt-get install -y nginx
+              sudo systemctl start nginx
+              sudo systemctl enable nginx
+              echo "<h1>☁️ Hello from {{.ServerName}}!</h1><p>Nginx Installed via Automation</p>" > /var/www/html/index.html
+              EOF
+  
+  user_data_replace_on_change = true
+  {{end}}
+  # 👆👆👆 ถ้าไม่ได้ติ๊ก Checkbox โค้ดส่วนนี้จะหายไปเลย
+
   tags = {
     Name    = "{{.ServerName}}"
     Project = "Cloud-Automation-Web-Generated"
   }
 }
 
-# 👇👇👇 ส่วนที่เพิ่มเข้ามา (Outputs) 👇👇👇
-
 output "server_public_ip" {
-  description = "IP Address ของ Server ที่สร้างเสร็จ"
-  value       = aws_instance.web_server.public_ip
+  value = aws_instance.web_server.public_ip
 }
 
 output "website_url" {
-  description = "ลิงก์สำหรับเข้าเว็บ (ถ้าลง Web Server แล้ว)"
-  value       = "http://${aws_instance.web_server.public_ip}"
+  value = "http://${aws_instance.web_server.public_ip}"
 }
 `
 
@@ -165,25 +185,25 @@ output "website_url" {
 		return
 	}
 
-	// แจ้งเตือน Success
+	// Success Message
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprintf(w, `
 		<div style="font-family: sans-serif; text-align: center; padding: 40px;">
-			<h1 style="color: green;">✅ สร้างไฟล์สำเร็จ! (พร้อมระบบโชว์ IP)</h1>
+			<h1 style="color: green;">✅ สร้างไฟล์สำเร็จ!</h1>
+			<p>สถานะการติดตั้ง Nginx: <strong>%t</strong></p>
 			
 			<div style="background: #f8f9fa; padding: 20px; border: 1px solid #ddd; display: inline-block; text-align: left; border-radius: 8px;">
 				<code>
 				terraform fmt<br>
 				git add .<br>
-				git commit -m "Add outputs for IP address"<br>
+				git commit -m "Config Nginx option"<br>
 				git push
 				</code>
 			</div>
 			<br><br>
-			<p>💡 <strong>หลังจาก Push เสร็จ:</strong><br> ให้ไปดูที่ GitHub Actions ในขั้นตอน <strong>Terraform Apply</strong><br> มันจะโชว์ IP ขึ้นมาให้เห็นเลย!</p>
 			<a href="/">⬅️ กลับหน้าแรก</a>
 		</div>
-	`)
+	`, isInstall)
 	
-	fmt.Printf("Generated: %s\n", data.ServerName)
+	fmt.Printf("Generated: Server=%s, InstallNginx=%t\n", data.ServerName, isInstall)
 }

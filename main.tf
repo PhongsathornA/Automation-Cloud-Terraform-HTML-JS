@@ -7,7 +7,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "terraform-state-phongsathorn-2025" # <--- ⚠️ อย่าลืมแก้ชื่อ Bucket เป็นของคุณ!
+    bucket = "terraform-state-phongsathorn-2025"  # <--- ⚠️ แก้ชื่อ Bucket ของคุณตรงนี้!
     key    = "terraform.tfstate"
     region = "ap-southeast-1"
   }
@@ -25,14 +25,14 @@ resource "aws_subnet" "user_selected_subnet" {
   vpc_id            = data.aws_vpc.default.id
   cidr_block        = "172.31.250.0/24"
   availability_zone = "ap-southeast-1a"
-
+  
   tags = {
-    Name = "Subnet-For-Output-Test"
+    Name = "Subnet-For-Test-Nginx"
   }
 }
 
 resource "aws_security_group" "user_custom_sg" {
-  name        = "Output-test"
+  name        = "Test-Nginx"
   description = "Security Group managed by Terraform Web Portal"
   vpc_id      = data.aws_vpc.default.id
 
@@ -60,32 +60,43 @@ resource "aws_security_group" "user_custom_sg" {
   }
 
   tags = {
-    Name = "Output-test"
+    Name = "Test-Nginx"
   }
 }
 
 resource "aws_instance" "web_server" {
   ami           = "ami-0b3eb051c6c7936e9"
   instance_type = "t3.micro"
-
-  subnet_id                   = aws_subnet.user_selected_subnet.id
-  vpc_security_group_ids      = [aws_security_group.user_custom_sg.id]
+  
+  subnet_id              = aws_subnet.user_selected_subnet.id
+  vpc_security_group_ids = [aws_security_group.user_custom_sg.id]
   associate_public_ip_address = true
 
+  # 👇👇👇 Logic เลือกติดตั้ง Nginx 👇👇👇
+  
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo apt-get update -y
+              sudo apt-get install -y nginx
+              sudo systemctl start nginx
+              sudo systemctl enable nginx
+              echo "<h1>☁️ Hello from Test-Nginx!</h1><p>Nginx Installed via Automation</p>" > /var/www/html/index.html
+              EOF
+  
+  user_data_replace_on_change = true
+  
+  # 👆👆👆 ถ้าไม่ได้ติ๊ก Checkbox โค้ดส่วนนี้จะหายไปเลย
+
   tags = {
-    Name    = "Output-Test"
+    Name    = "Test-Nginx"
     Project = "Cloud-Automation-Web-Generated"
   }
 }
 
-# 👇👇👇 ส่วนที่เพิ่มเข้ามา (Outputs) 👇👇👇
-
 output "server_public_ip" {
-  description = "IP Address ของ Server ที่สร้างเสร็จ"
-  value       = aws_instance.web_server.public_ip
+  value = aws_instance.web_server.public_ip
 }
 
 output "website_url" {
-  description = "ลิงก์สำหรับเข้าเว็บ (ถ้าลง Web Server แล้ว)"
-  value       = "http://${aws_instance.web_server.public_ip}"
+  value = "http://${aws_instance.web_server.public_ip}"
 }
