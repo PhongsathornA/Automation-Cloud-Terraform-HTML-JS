@@ -3,68 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Terraform Creator</title>
+    <title>Universal Cloud Creator</title>
     <style>
-        /* CSS เดิมของคุณ (ผมย่อให้ดูสะอาดตา) */
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #2c3e50; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 20px; }
-        button:hover { background-color: #218838; }
-        .note { background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 10px; margin-bottom: 15px; font-size: 0.9em; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 700px; margin: auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1a73e8; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
+        input:focus, select:focus { border-color: #1a73e8; outline: none; }
+        
+        /* ปุ่ม Submit */
+        button { width: 100%; padding: 15px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background-color 0.3s; }
+        button:hover { background-color: #1557b0; }
+
+        /* ส่วนที่ซ่อนไว้ (Manual Subnet) */
+        #manual-subnet-box { display: none; margin-top: 10px; padding: 15px; background: #f8f9fa; border-left: 4px solid #1a73e8; border-radius: 4px; }
+        
+        .note { background-color: #e8f0fe; color: #1967d2; padding: 15px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9em; line-height: 1.5; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>☁️ Universal Cloud Creator</h1>
+        
         <div class="note">
-            <strong>Note:</strong> ระบบจะสร้างไฟล์ <code>main.tf</code> ให้คุณอัตโนมัติ หลังจากกดปุ่ม ให้คุณตรวจสอบไฟล์แล้วทำการ Git Push
+            <strong>✨ New Features:</strong> สามารถตั้งชื่อ Security Group เองได้ และเลือกโหมด Subnet ได้แล้ว!
         </div>
 
-        <!-- เปลี่ยน form ให้ส่งไปหา /generate แบบ POST -->
         <form action="/generate" method="POST">
             
             <div class="form-group">
-                <label for="platform">1. เลือก Platform</label>
-                <select id="platform" name="platform">
-                    <option value="aws">Amazon Web Services (AWS)</option>
-                    <!-- ซ่อนตัวอื่นไว้ก่อนเพื่อไม่ให้สับสน -->
+                <label>1. Instance Name (ชื่อเครื่อง):</label>
+                <input type="text" name="serverName" placeholder="e.g. My-App-Server" required>
+            </div>
+
+            <div class="form-group">
+                <label>2. Instance Type (ขนาดเครื่อง):</label>
+                <select name="instanceType">
+                    <option value="t3.micro">t3.micro (Small)</option>
+                    <option value="t3.small">t3.small (Medium)</option>
                 </select>
             </div>
 
-            <div id="aws-fields">
-                <h3>2. AWS Configuration</h3>
-                
-                <div class="form-group">
-                    <label>Instance Name (ชื่อเครื่อง Server):</label>
-                    <input type="text" name="serverName" placeholder="e.g. My-Web-Server" required>
-                </div>
+            <div class="form-group">
+                <label>3. Region (โซน):</label>
+                <select name="region">
+                    <option value="ap-southeast-1">Singapore (ap-southeast-1)</option>
+                </select>
+            </div>
 
-                <div class="form-group">
-                    <label>Region (โซน):</label>
-                    <select name="region">
-                        <option value="ap-southeast-1">Singapore (ap-southeast-1)</option>
-                        <option value="us-east-1">USA (us-east-1)</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label>4. Security Group Name (ชื่อยามเฝ้าประตู):</label>
+                <input type="text" name="sgName" placeholder="e.g. my-web-firewall" required>
+            </div>
 
-                <div class="form-group">
-                    <label>Instance Type (ความแรง):</label>
-                    <select name="instanceType">
-                        <option value="t3.micro">t3.micro (แนะนำ - ประหยัด)</option>
-                        <option value="t3.small">t3.small (แรงขึ้นมาหน่อย)</option>
-                        <option value="t3.medium">t3.medium (สำหรับงานหนัก)</option>
-                    </select>
+            <div class="form-group">
+                <label>5. Subnet Configuration (วงเครือข่าย):</label>
+                <select id="subnetMode" name="subnetMode" onchange="toggleSubnet()">
+                    <option value="auto">Auto (ระบบจัดการให้ - แนะนำ)</option>
+                    <option value="manual">Manual (กำหนด IP เอง)</option>
+                </select>
+
+                <div id="manual-subnet-box">
+                    <label>Enter CIDR Block:</label>
+                    <input type="text" name="customCidr" placeholder="e.g. 172.31.250.0/24">
+                    <small style="color: #666;">*ต้องเป็น IP ที่ไม่ซ้ำกับที่มีอยู่ (Valid CIDR)</small>
                 </div>
             </div>
 
-            <button type="submit">🚀 Generate Terraform Code</button>
+            <button type="submit">🚀 Generate Infrastructure</button>
         </form>
     </div>
+
+    <script>
+        function toggleSubnet() {
+            const mode = document.getElementById("subnetMode").value;
+            const box = document.getElementById("manual-subnet-box");
+            
+            // ถ้าเลือก Manual ให้แสดงกล่อง, ถ้า Auto ให้ซ่อน
+            if (mode === "manual") {
+                box.style.display = "block";
+            } else {
+                box.style.display = "none";
+            }
+        }
+    </script>
 
 </body>
 </html>

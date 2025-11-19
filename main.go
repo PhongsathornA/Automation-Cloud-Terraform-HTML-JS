@@ -8,10 +8,13 @@ import (
 	"text/template"
 )
 
+// เพิ่ม field เพื่อรับค่าใหม่ๆ
 type FormData struct {
 	ServerName   string
 	InstanceType string
 	Region       string
+	SgName       string // ชื่อ Security Group
+	SubnetCIDR   string // เลข IP ของ Subnet
 }
 
 func main() {
@@ -22,7 +25,6 @@ func main() {
 	http.HandleFunc("/generate", handleGenerate)
 
 	fmt.Println("Server started at http://localhost:8080")
-	fmt.Println("Opening browser...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -32,10 +34,29 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// --- Logic การจัดการ Subnet ---
+	subnetMode := r.FormValue("subnetMode")
+	finalCidr := ""
+
+	if subnetMode == "manual" {
+		// ถ้าเลือก Manual ให้เอาค่าที่พิมพ์มาใช้
+		finalCidr = r.FormValue("customCidr")
+		// กันเหนียว: ถ้าเลือก Manual แต่ลืมพิมพ์ ให้ใช้ค่า Default
+		if finalCidr == "" {
+			finalCidr = "172.31.250.0/24"
+		}
+	} else {
+		// ถ้าเลือก Auto ให้ระบบเลือกค่ามาตรฐานให้
+		finalCidr = "172.31.250.0/24" 
+	}
+
+	// เก็บข้อมูลลง Struct เตรียมส่งเข้า Template
 	data := FormData{
 		ServerName:   r.FormValue("serverName"),
 		InstanceType: r.FormValue("instanceType"),
 		Region:       r.FormValue("region"),
+		SgName:       r.FormValue("sgName"), // รับชื่อ SG
+		SubnetCIDR:   finalCidr,             // รับเลข IP ที่ผ่าน Logic แล้ว
 	}
 
 	const tfTemplate = `terraform {
@@ -47,7 +68,7 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
   }
 
   backend "s3" {
-    bucket = "terraform-state-phongsathorn-2025"  # <--- ⚠️ เช็กชื่อ Bucket ตรงนี้ให้ถูกต้อง!
+    bucket = "terraform-state-phongsathorn-2025"  # <--- ⚠️ แก้ชื่อ Bucket ของคุณตรงนี้!
     key    = "terraform.tfstate"
     region = "{{.Region}}"
   }
@@ -61,19 +82,21 @@ data "aws_vpc" "default" {
   default = true
 }
 
-resource "aws_subnet" "my_custom_subnet" {
+# --- Subnet (Dynamic CIDR) ---
+resource "aws_subnet" "user_selected_subnet" {
   vpc_id            = data.aws_vpc.default.id
-  cidr_block        = "172.31.200.0/24"
+  cidr_block        = "{{.SubnetCIDR}}"      # <--- ค่านี้จะเปลี่ยนตามที่ User เลือก (Auto/Manual)
   availability_zone = "{{.Region}}a"
   
   tags = {
-    Name = "My-Custom-Subnet-By-Go"
+    Name = "Subnet-For-{{.ServerName}}"
   }
 }
 
-resource "aws_security_group" "allow_web_ssh" {
-  name        = "allow_web_ssh_by_go"
-  description = "Allow Web (80) and SSH (22)"
+# --- Security Group (Dynamic Name) ---
+resource "aws_security_group" "user_custom_sg" {
+  name        = "{{.SgName}}"                # <--- ชื่อ SG ตามที่ User กรอก
+  description = "Security Group managed by Terraform Web Portal"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
@@ -98,19 +121,23 @@ resource "aws_security_group" "allow_web_ssh" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "{{.SgName}}" # แปะป้ายชื่อให้ตรงกันด้วย
+  }
 }
 
 resource "aws_instance" "web_server" {
   ami           = "ami-0b3eb051c6c7936e9"
   instance_type = "{{.InstanceType}}"
   
-  subnet_id              = aws_subnet.my_custom_subnet.id
-  vpc_security_group_ids = [aws_security_group.allow_web_ssh.id]
+  subnet_id              = aws_subnet.user_selected_subnet.id
+  vpc_security_group_ids = [aws_security_group.user_custom_sg.id]
   associate_public_ip_address = true
 
   tags = {
     Name    = "{{.ServerName}}"
-    Project = "Cloud-Automation-Full-Stack"
+    Project = "Cloud-Automation-Web-Generated"
   }
 }
 `
@@ -134,30 +161,30 @@ resource "aws_instance" "web_server" {
 		return
 	}
 
-	// 👇 ปรับแก้ HTML ตรงนี้ครับ ใส่คำเตือนและคำสั่งให้ครบชุด
+	// แจ้งเตือน Success
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprintf(w, `
-		<div style="font-family: sans-serif; text-align: center; padding: 40px; max-width: 600px; margin: auto;">
-			<h1 style="color: #28a745;">✅ สร้างไฟล์สำเร็จ!</h1>
+		<div style="font-family: sans-serif; text-align: center; padding: 40px;">
+			<h1 style="color: green;">✅ สร้างไฟล์สำเร็จ!</h1>
+			<p>Config ที่เลือก:</p>
+			<ul style="list-style: none;">
+				<li><strong>Server:</strong> %s</li>
+				<li><strong>Security Group:</strong> %s</li>
+				<li><strong>Subnet CIDR:</strong> %s</li>
+			</ul>
 			
-			<div style="background: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; border-radius: 5px; margin-bottom: 20px; text-align: left;">
-				<strong>⚠️ สำคัญมาก:</strong> เพื่อป้องกัน GitHub Actions แจ้ง Error <br>
-				กรุณารันคำสั่ง <code>terraform fmt</code> ทุกครั้งก่อนส่งงาน!
+			<div style="background: #f8f9fa; padding: 20px; border: 1px solid #ddd; display: inline-block; text-align: left; border-radius: 8px;">
+				<code>
+				terraform fmt<br>
+				git add .<br>
+				git commit -m "Update infra with custom SG and Subnet"<br>
+				git push
+				</code>
 			</div>
-
-			<p>ก๊อปปี้คำสั่งด้านล่างไปวางใน Terminal ของ VS Code:</p>
-			
-			<div style="background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 10px; text-align: left; font-family: monospace; font-size: 1.1em;">
-				<span style="color: #a6e22e;">terraform fmt</span> <span style="color: #75715e;"># จัดระเบียบโค้ดให้สวย</span><br>
-				<span style="color: #a6e22e;">git add .</span><br>
-				<span style="color: #a6e22e;">git commit -m "Update infrastructure"</span><br>
-				<span style="color: #a6e22e;">git push</span>
-			</div>
-
 			<br><br>
-			<a href="/" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">⬅️ กลับหน้าแรก</a>
+			<a href="/">⬅️ กลับหน้าแรก</a>
 		</div>
-	`)
+	`, data.ServerName, data.SgName, data.SubnetCIDR)
 	
-	fmt.Printf("Generated Terraform for: %s\n", data.ServerName)
+	fmt.Printf("Generated: Server=%s, SG=%s, Subnet=%s\n", data.ServerName, data.SgName, data.SubnetCIDR)
 }

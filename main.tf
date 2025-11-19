@@ -7,7 +7,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "terraform-state-phongsathorn-2025" # <--- ⚠️ เช็กชื่อ Bucket ตรงนี้ให้ถูกต้อง!
+    bucket = "terraform-state-phongsathorn-2025" # <--- ⚠️ แก้ชื่อ Bucket ของคุณตรงนี้!
     key    = "terraform.tfstate"
     region = "ap-southeast-1"
   }
@@ -21,19 +21,21 @@ data "aws_vpc" "default" {
   default = true
 }
 
-resource "aws_subnet" "my_custom_subnet" {
+# --- Subnet (Dynamic CIDR) ---
+resource "aws_subnet" "user_selected_subnet" {
   vpc_id            = data.aws_vpc.default.id
-  cidr_block        = "172.31.200.0/24"
+  cidr_block        = "172.31.250.0/24" # <--- ค่านี้จะเปลี่ยนตามที่ User เลือก (Auto/Manual)
   availability_zone = "ap-southeast-1a"
 
   tags = {
-    Name = "My-Custom-Subnet-By-Go"
+    Name = "Subnet-For-R3-Test"
   }
 }
 
-resource "aws_security_group" "allow_web_ssh" {
-  name        = "allow_web_ssh_by_go"
-  description = "Allow Web (80) and SSH (22)"
+# --- Security Group (Dynamic Name) ---
+resource "aws_security_group" "user_custom_sg" {
+  name        = "Test-Group_SG" # <--- ชื่อ SG ตามที่ User กรอก
+  description = "Security Group managed by Terraform Web Portal"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
@@ -58,18 +60,22 @@ resource "aws_security_group" "allow_web_ssh" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "Test-Group_SG" # แปะป้ายชื่อให้ตรงกันด้วย
+  }
 }
 
 resource "aws_instance" "web_server" {
   ami           = "ami-0b3eb051c6c7936e9"
   instance_type = "t3.micro"
 
-  subnet_id                   = aws_subnet.my_custom_subnet.id
-  vpc_security_group_ids      = [aws_security_group.allow_web_ssh.id]
+  subnet_id                   = aws_subnet.user_selected_subnet.id
+  vpc_security_group_ids      = [aws_security_group.user_custom_sg.id]
   associate_public_ip_address = true
 
   tags = {
-    Name    = "Test2-By-Go"
-    Project = "Cloud-Automation-Full-Stack"
+    Name    = "R3-Test"
+    Project = "Cloud-Automation-Web-Generated"
   }
 }
