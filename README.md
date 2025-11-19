@@ -6,8 +6,6 @@ This project creates AWS EC2 using Terraform and GitHub Actions.
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange?logo=amazon-aws)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=github-actions)
 
-[![Repo Card](https://github-readme-stats.vercel.app/api/pin/?username=PhongsathornA&repo=Automation-Cloud-Terraform-HTML-JS&theme=radical&v=1)](https://github.com/PhongsathornA/Automation-Cloud-Terraform-HTML-JS)
-
 ## 🏗 Architecture
 1. **Frontend:** HTML/JS for User
 2. **Backend:** Go (Golang) Process
