@@ -107,6 +107,7 @@ resource "aws_instance" "web_server" {
 			<ul style="display: inline-block; text-align: left;">
 				<li>1. กลับไปที่ VS Code</li>
 				<li>2. เปิด Terminal</li>
+				<li>3. พิมพ์คำสั่ง: <code>terraform fmt</code></li>
 				<li>3. พิมพ์คำสั่ง: <code>git add .</code></li>
 				<li>4. พิมพ์คำสั่ง: <code>git commit -m "Update from web"</code></li>
 				<li>5. พิมพ์คำสั่ง: <code>git push</code></li>
