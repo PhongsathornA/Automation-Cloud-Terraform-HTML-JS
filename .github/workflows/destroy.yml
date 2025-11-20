@@ -13,10 +13,16 @@ jobs:
       pull-requests: write
 
     env:
-      # ต้องมี Key เพื่อเข้าไปอ่าน State ใน S3 ว่ามีอะไรต้องลบบ้าง
+      # 1. AWS Keys (สำหรับ S3 Backend และลบของ AWS)
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: "ap-southeast-1"
+      
+      # 2. Azure Keys (เพิ่มใหม่ตรงนี้! เพื่อให้หุ่นยนต์มีสิทธิ์ลบ Azure)
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
     steps:
       - name: Checkout Code
