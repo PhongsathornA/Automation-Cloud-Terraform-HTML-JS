@@ -1,12 +1,16 @@
 name: "Terraform Infrastructure CI/CD"
 
 on:
+  # 1. ทำงานอัตโนมัติเมื่อ Push ไฟล์ .tf
   push:
     branches:
       - main
     paths:
       - '**.tf'
       - '.github/workflows/terraform.yml'
+  
+  # 2. 👇 แก้ตรงนี้: ขยับออกมาให้ตรงกับ push (เพื่อเปิดปุ่มกดเอง)
+  workflow_dispatch:
 
 jobs:
   terraform:
@@ -17,12 +21,12 @@ jobs:
       pull-requests: write
 
     env:
-      # 1. AWS Keys (ของเดิม)
+      # AWS Keys
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: "ap-southeast-1"
 
-      # 2. Azure Keys (เพิ่มใหม่! เพื่อให้สร้างของใน Azure ได้)
+      # Azure Keys
       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
@@ -56,14 +60,6 @@ jobs:
         continue-on-error: true
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        # 👇 แก้ตรงนี้: เพิ่มเงื่อนไข "หรือ เป็นการกดปุ่มเอง" (workflow_dispatch)
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: terraform apply -auto-approve
-```
-
-### 🚀 สิ่งที่ต้องทำ
-1.  แก้ไฟล์ `.github/workflows/terraform.yml` ใน VS Code
-2.  Push ขึ้น GitHub:
-    ```bash
-    git add .
-    git commit -m "Add Azure credentials to main workflow"
-    git push
