@@ -16,12 +16,12 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "TestAzure3"
+  name     = "TestAzure4"
   location = "southeastasia"
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "vnet-TestAzure3"
+  name                = "vnet-TestAzure4"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -35,7 +35,7 @@ resource "azurerm_subnet" "subnet" {
 }
 
 resource "azurerm_network_interface" "nic" {
-  name                = "nic-TestAzure3"
+  name                = "nic-TestAzure4"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -47,13 +47,13 @@ resource "azurerm_network_interface" "nic" {
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "TestAzure3"
+  name                = "TestAzure4"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   size                = "Standard_B1s"
-
+  
   admin_username                  = "adminuser"
-  admin_password                  = "P@ssw0rd1234!"
+  admin_password                  = "P@ssw0rd1234!" 
   disable_password_authentication = false
 
   network_interface_ids = [azurerm_network_interface.nic.id]
