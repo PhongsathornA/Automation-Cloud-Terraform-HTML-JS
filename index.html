@@ -3,78 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Automation: HA Cluster</title>
+    <title>Universal Cloud Creator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f8; padding: 20px; margin: 0; }
-        .container { max-width: 750px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #0d47a1; margin-bottom: 10px; }
-        .subtitle { text-align: center; color: #546e7a; margin-bottom: 30px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; margin: 0; transition: background 0.5s; }
+        .container { max-width: 750px; margin: 40px auto; background: #fff; padding: 35px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.08); border-top: 5px solid #FF9900; transition: border-top 0.3s; }
         
-        .badge {
-            display: block; text-align: center; background: #e3f2fd; color: #1565c0;
-            padding: 12px; border-radius: 8px; border: 1px solid #bbdefb; margin-bottom: 25px; font-weight: bold;
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 30px; font-size: 0.95rem; }
+
+        /* Provider Selector */
+        .provider-selector { display: flex; gap: 15px; margin-bottom: 30px; }
+        .provider-option { 
+            flex: 1; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; text-align: center; font-weight: bold; color: #555; transition: all 0.3s; background: #fff;
         }
-
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #37474f; }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; border: 1px solid #cfd8dc; border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: 0.3s; }
-        input:focus, select:focus { border-color: #1976d2; outline: none; box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.1); }
+        .provider-option:hover { border-color: #aaa; transform: translateY(-2px); }
+        .provider-option i { margin-bottom: 8px; display: block; }
         
-        button { width: 100%; padding: 16px; background: linear-gradient(135deg, #1e88e5, #1565c0); color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 15px; box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3); transition: 0.3s; }
-        button:hover { background: linear-gradient(135deg, #1976d2, #0d47a1); transform: translateY(-2px); }
+        /* Active States */
+        .provider-option[data-value="aws"].active { border-color: #FF9900; color: #FF9900; background: #fff8e1; box-shadow: 0 4px 10px rgba(255, 153, 0, 0.2); }
+        .provider-option[data-value="azure"].active { border-color: #0078D4; color: #0078D4; background: #e3f2fd; box-shadow: 0 4px 10px rgba(0, 120, 212, 0.2); }
 
-        .checkbox-group { display: flex; align-items: center; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
-        .checkbox-group input { width: 20px; height: 20px; margin-right: 15px; }
+        /* Badges */
+        .arch-badge { padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 0.9rem; }
+        .aws-badge { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+        .azure-badge { background: #e1f5fe; color: #0277bd; border: 1px solid #81d4fa; }
+
+        /* Form Elements */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #34495e; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #dcdcdc; border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: 0.3s; }
+        input:focus, select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+
+        /* Submit Button */
+        button { width: 100%; padding: 16px; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        button:hover { filter: brightness(95%); transform: translateY(-1px); }
+        .aws-btn { background: linear-gradient(135deg, #FF9900, #F58220); }
+        .azure-btn { background: linear-gradient(135deg, #0078D4, #005a9e); }
+
+        /* Checkbox */
+        .checkbox-wrapper { display: flex; align-items: center; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .checkbox-wrapper input { width: 20px; height: 20px; margin-right: 12px; cursor: pointer; }
+        .checkbox-wrapper label { margin: 0; cursor: pointer; color: #2c3e50; }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>🌐 Cloud Cluster Creator</h1>
-        <p class="subtitle">Deploy Load Balancer & Auto Scaling Group with Terraform</p>
+    <div class="container" id="mainContainer">
+        <h1>☁️ Universal Cloud Creator</h1>
+        <p class="subtitle">Multi-Cloud Infrastructure as Code Generator</p>
         
-        <div class="badge">
-            🚀 Architecture: ALB + ASG (High Availability)
-        </div>
-
         <form action="/generate" method="POST">
             
-            <div class="form-group">
-                <label>1. Cluster Name (ชื่อระบบ):</label>
-                <input type="text" name="serverName" placeholder="e.g. My-Web-Cluster" required>
-            </div>
-
-            <div class="form-group">
-                <label>2. Instance Size:</label>
-                <select name="instanceType">
-                    <option value="t3.micro">t3.micro (Free Tier Eligible)</option>
-                    <option value="t3.small">t3.small</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>3. Desired Capacity (จำนวนเครื่องเริ่มต้น):</label>
-                <select name="capacity">
-                    <option value="2">2 Instances (แนะนำสำหรับ ALB)</option>
-                    <option value="3">3 Instances</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>4. Security Group Name:</label>
-                <input type="text" name="sgName" placeholder="e.g. my-alb-sg" required>
-            </div>
-
-            <div class="form-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="installNginx" name="installNginx" value="yes" checked>
-                    <label for="installNginx">🛠️ Install Nginx & Create HTML Page</label>
+            <!-- Provider Selector -->
+            <input type="hidden" name="provider" id="selectedProvider" value="aws">
+            <div class="provider-selector">
+                <div class="provider-option active" data-value="aws" onclick="selectProvider('aws')">
+                    <i class="fa-brands fa-aws fa-2x"></i> Amazon AWS
+                </div>
+                <div class="provider-option" data-value="azure" onclick="selectProvider('azure')">
+                    <i class="fa-brands fa-microsoft fa-2x"></i> Microsoft Azure
                 </div>
             </div>
 
-            <button type="submit">🚀 Deploy Cluster</button>
+            <!-- Shared Field: Name -->
+            <div class="form-group">
+                <label id="nameLabel">1. Cluster Name (ชื่อระบบ):</label>
+                <input type="text" name="resourceName" placeholder="e.g. My-Web-Cluster" required>
+            </div>
+
+            <!-- ================= AWS SECTION (FULL OPTION) ================= -->
+            <div id="aws-fields">
+                <div class="arch-badge aws-badge">
+                    🚀 Architecture: ALB + Auto Scaling Group (High Availability)
+                </div>
+
+                <div class="form-group">
+                    <label>2. Instance Size:</label>
+                    <select name="awsInstanceType">
+                        <option value="t3.micro">t3.micro (Free Tier Eligible)</option>
+                        <option value="t3.small">t3.small (Small)</option>
+                        <option value="t3.medium">t3.medium (Medium)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>3. Desired Capacity (จำนวนเครื่อง):</label>
+                    <select name="awsCapacity">
+                        <option value="2">2 Instances (แนะนำสำหรับ HA)</option>
+                        <option value="3">3 Instances</option>
+                        <option value="1">1 Instance (Dev/Test)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>4. Security Group Name:</label>
+                    <input type="text" name="awsSgName" placeholder="e.g. my-alb-sg">
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="installNginx" name="installNginx" value="yes" checked>
+                        <label for="installNginx">🛠️ Install Nginx & Create HTML Page</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= AZURE SECTION (BASIC) ================= -->
+            <div id="azure-fields" class="hidden">
+                <div class="arch-badge azure-badge">
+                    🟦 Architecture: Single Virtual Machine (Basic)
+                </div>
+
+                <div class="form-group">
+                    <label>Azure Location:</label>
+                    <select name="azureLocation">
+                        <option value="southeastasia">Southeast Asia (Singapore)</option>
+                        <option value="eastus">East US</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>VM Size:</label>
+                    <select name="azureVmSize">
+                        <option value="Standard_B1s">Standard_B1s (Dev/Test)</option>
+                        <option value="Standard_D2s_v3">Standard_D2s_v3</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Resource Group Name:</label>
+                    <input type="text" name="azureRgName" placeholder="e.g. my-resource-group">
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="aws-btn">🚀 Deploy AWS Cluster</button>
         </form>
     </div>
+
+    <script>
+        function selectProvider(provider) {
+            // Update UI
+            document.querySelectorAll('.provider-option').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.provider-option[data-value="${provider}"]`).classList.add('active');
+            document.getElementById('selectedProvider').value = provider;
+
+            // Toggle Sections
+            const awsFields = document.getElementById('aws-fields');
+            const azureFields = document.getElementById('azure-fields');
+            const btn = document.getElementById('submitBtn');
+            const container = document.getElementById('mainContainer');
+            const nameLabel = document.getElementById('nameLabel');
+
+            if (provider === 'aws') {
+                awsFields.classList.remove('hidden');
+                azureFields.classList.add('hidden');
+                btn.className = 'aws-btn';
+                btn.innerHTML = '🚀 Deploy AWS Cluster';
+                container.style.borderTopColor = '#FF9900';
+                nameLabel.innerText = '1. Cluster Name (ชื่อระบบ):';
+            } else {
+                awsFields.classList.add('hidden');
+                azureFields.classList.remove('hidden');
+                btn.className = 'azure-btn';
+                btn.innerHTML = '🚀 Deploy Azure VM';
+                container.style.borderTopColor = '#0078D4';
+                nameLabel.innerText = '1. Virtual Machine Name (ชื่อเครื่อง):';
+            }
+        }
+    </script>
 
 </body>
 </html>
